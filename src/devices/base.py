@@ -1,7 +1,8 @@
 import asyncio
-import os
-from pprint import pprint
+import select
 from typing import List, Generator, AsyncIterable, Type
+from pprint import pprint
+import os
 
 from inputs import InputDevice, InputEvent, devices, UnpluggedError
 
@@ -24,13 +25,47 @@ class IncompatibleDevice(Exception):
 
 
 class ReadIterator(object):
-    pass
+
+    def __init__(self, device):
+        self.current_batch = iter(())
+        self.device = device
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            # Read from the previous batch of events.
+            return next(self.current_batch)
+        except StopIteration:
+            r, w, x = select.select([self.device.fd], [], [])
+            self.current_batch = self.device.read()
+            return next(self.current_batch)
+
+    def __aiter__(self):
+        return self
+
+    @asyncio.coroutine
+    def __anext__(self):
+        future = asyncio.Future()
+        try:
+            # Read from the previous batch of events.
+            future.set_result(next(self.current_batch))
+        except StopIteration:
+            def next_batch_ready(batch):
+                try:
+                    self.current_batch = batch.result()
+                    future.set_result(next(self.current_batch))
+                except Exception as e:
+                    future.set_exception(e)
+            self.device.set_reader().add_done_callback(next_batch_ready)
+        return future
 
 
 class BaseDevice(AbstractDevice):
 
-    def __init__(self, *, maxsize: int=0, timeout: int=100,
-                 loop: asyncio.AbstractEventLoop=None, device: InputDevice):
+    def __init__(self, *, maxsize: int = 0, timeout: int = 100,
+                 loop: asyncio.AbstractEventLoop = None, device: InputDevice):
         """
         Device base class that uses the 'inputs' package from
         (https://github.com/zeth/inputs).
