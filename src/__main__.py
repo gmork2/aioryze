@@ -8,6 +8,7 @@ from typing import Callable, Text
 
 from config import __version__
 from config.settings import DEBUG
+from devices.command import CommandMixin as DeviceMixin
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ def get_version() -> str:
     return str(__version__)
 
 
-class Command(object):
+class Command(DeviceMixin):
     __epilog: str = '''
         | One app to rule them all.
     '''
