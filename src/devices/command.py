@@ -5,6 +5,9 @@ from typing import Optional, Tuple
 from inputs import devices, InputDevice
 
 from core.command import BaseCommandMixin, DEVICE_TEXT
+from devices.base import Device
+from devices.config import Config
+from config.settings import SCAN_TIMER_RANGE
 
 
 class CommandMixin(BaseCommandMixin):
@@ -57,6 +60,16 @@ class CommandMixin(BaseCommandMixin):
             return
 
         return self.__device(index)
+
+    def __scan(self, device: InputDevice = None) -> Device:
+        """
+
+        :return:
+        """
+        self.__config = Config(device=device)
+        self.__config.scan(*SCAN_TIMER_RANGE)
+
+        return self.__config.device
 
     @staticmethod
     def __device(index: int) -> Optional[InputDevice]:
