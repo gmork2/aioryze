@@ -1,13 +1,14 @@
 import sys
 from argparse import ArgumentParser
-from typing import Optional, Tuple
+from typing import Optional
 
 from inputs import devices, InputDevice
 
 from core.command import BaseCommandMixin, DEVICE_TEXT
+from config.settings import SCAN_TIMER_RANGE
 from devices.base import Device
 from devices.config import Config
-from config.settings import SCAN_TIMER_RANGE
+from .decorators import spin_animation
 
 
 class CommandMixin(BaseCommandMixin):
@@ -61,6 +62,7 @@ class CommandMixin(BaseCommandMixin):
 
         return self.__device(index)
 
+    @spin_animation(message="Scanning device...", frequency=.1)
     def __scan(self, device: InputDevice = None) -> Device:
         """
 
