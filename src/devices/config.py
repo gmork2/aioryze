@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, Optional
 import asyncio
+import timeit
 
 from inputs import devices, InputDevice, InputEvent
 
@@ -13,6 +14,38 @@ SNES = (
 )
 
 
+class Timer(object):
+    def __init__(self, timeout: float):
+        """
+
+        :param timeout:
+        """
+        self.timeout = timeout
+        self.timer = timeit.default_timer
+
+    def __enter__(self):
+        """
+        Register start time.
+
+        :return:
+        """
+        self.start = self.timer()
+        return self
+
+    def __exit__(self, *args):
+        """
+        Raise TimeoutException if time elapsed is shorter
+        than timeout.
+
+        :param args:
+        :return:
+        """
+        end = self.timer()
+
+        if end - self.start < self.timeout:
+            raise asyncio.TimeoutError
+
+
 class Config:
     def __init__(self, names: List[str] = SNES, device: Device = None):
         """
@@ -20,7 +53,7 @@ class Config:
         :param names:
         :param device:
         """
-        self._mapping: UniqueValueOrderedDict = None
+        self._mapping: Optional[UniqueValueOrderedDict] = None
         self._names = names
 
         self.device = device
@@ -59,12 +92,21 @@ class Config:
         done, _ = await asyncio.wait(futures, return_when=criteria)
         return done
 
-    def scan(self):
+    def scan(self, min_time: float, max_time: float):
         """
 
+        :param min_time:
+        :param max_time:
         :return:
         """
-        pass
+        try:
+            task = asyncio.wait_for(self.read_all(), max_time)
+
+            with Timer(timeout=min_time):
+                asyncio.run(task)
+
+        except asyncio.TimeoutError:
+            raise
 
     def load(self):
         """
