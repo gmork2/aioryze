@@ -31,7 +31,7 @@ class Command(DeviceMixin):
     __usage: str = textwrap.dedent('''\
         __main__.py <command> [<args>]
 
-        The most commonly used git commands are:
+        The following commands are available:
             devices    Utilities for handle your devices
             ui         Interface based in curses
     ''')
