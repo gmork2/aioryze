@@ -84,3 +84,45 @@ class CommandMixin(BaseCommandMixin):
             return devices.all_devices[index]
         except IndexError:
             pass
+
+    def devices(self) -> None:
+        """
+
+        :return:
+        """
+        args = self.__parse_arguments()
+
+        if args.configure:
+            stdout = getattr(self, 'stdout', sys.stdout)
+
+            # Try to detect the device in use
+            device: InputDevice = self.__scan()
+
+            while not device:
+                stdout.write("\nSelect device:\n")
+                self.__list(prefix=' ')
+
+                device = self.__select_device(">> Choose: ")
+
+        elif args.list:
+            self.__list()
+
+        else:
+            from devices import Mouse
+
+            device = devices.mice[0]
+            mouse = Mouse(loop=self._loop, device=device)
+
+            print("Initializing {}...".format(mouse))
+
+            async def read_device(device):
+                while True:
+                    event = await device.get()
+                    print("Event: {} {}".format(event, device.buffer_qsize))
+
+            self._loop.create_task(read_device(mouse))
+            self._loop.run_until_complete(mouse.start())
+            self._loop.close()
+
+
+
